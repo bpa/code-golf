@@ -1,0 +1,50 @@
+#! /usr/bin/perl
+
+use strict;
+use warnings;
+
+#This creates my utf8 based table from a tab delimited file
+# field 1 - character
+# field 2 - Set of wide and narrow designations
+
+#at the moment, we will use 3 bits from each of a 3 byte utf8 sequence
+open OUT, ">table.utf8";
+open GOLF, ">golf1.p6";
+binmode(OUT);
+select OUT;
+$| = 1;
+
+while (<>) {
+	chomp;
+	my ($char, $code) = split /\t/;
+	$code =~ tr/WwNn/1100/;
+	printf "%s %s ", $char, unpack("C", $char);
+	print_val($code);
+	print_unicode($code);
+	print "\n";
+}
+print "\n";
+
+sub print_val {
+	my $code = shift;
+	my $val = oct("0b$code");
+	printf "%4i 0x%04x %s ", $val, $val, $code;
+}
+
+sub print_unicode {
+	my $code = shift;
+	my ($a, $b, $c) = $code =~ /(.{3})(.{3})(.{3})/;
+	$code = "11001" . $a . '10001' . $b . '10001' . $c;
+	my $val = oct("0b$code");
+	printf "%4x %5i %s ", $val, $val, $code;
+	#printf "%s %s ", @chars;
+	#my $char = pack("n", $val);
+	syswrite(OUT, pack("C", oct("0b11101$a")), 1);
+	syswrite(OUT, pack("C", oct("0b10001$b")), 1);
+	syswrite(OUT, pack("C", oct("0b10001$c")), 1);
+	syswrite(GOLF, pack("C", oct("0b11101$a")), 1);
+	syswrite(GOLF, pack("C", oct("0b10001$b")), 1);
+	syswrite(GOLF, pack("C", oct("0b10001$c")), 1);
+	#syswrite(OUT, pack("v", $val), 2);
+	#syswrite(OUT, pack("C", oct("0b$_")), 1) for @chars;
+}
